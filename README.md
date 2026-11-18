@@ -4,5 +4,6 @@ O inchaço e o avermelhamento da pele são manifestações comuns após uma ciru
 
 Esta análise concentra-se na mão operada e tem dois objetivos. O primeiro é comparar a distribuição das temperaturas entre os grupos antes da cirurgia. O segundo é avaliar, separadamente no grupo que recebeu a substância V e no grupo placebo, se a temperatura varia entre os quatro momentos de medição e, caso haja evidência de variação, identificar entre quais momentos ela ocorre.
 
+Overleaf: https://www.overleaf.com/project/6af6e991c8b6ab753eaa5fa9/share#4210922649cfd5ce556bd05753f25854a27b783fa87ea3f3 
 
 ## Feita por Letícia Ruas (https://github.com/LeticiaRodr) e Lívia Caroline (https://github.com/Livia-CRPereira)
