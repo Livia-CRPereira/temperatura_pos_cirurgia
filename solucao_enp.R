@@ -250,3 +250,66 @@ res_boot <- boot::boot(
 sum(is.finite(res_boot$t))
 
 boot::boot.ci(res_boot, conf = 0.95, type = c("perc", "bca"))
+
+
+# COMPARAÇÃO ENTRE GRUPOS (DROGA VS PLACEBO) EM CADA MOMENTO (D1, D3, D5)
+
+
+# Função para comparar Droga vs Placebo em um dia específico usando KS e Bootstrap
+comparar_grupos_por_dia <- function(dia_alvo, R_boot = 10000) {
+  dados_dia <- df_operada %>%
+    filter(DIA == dia_alvo) %>%
+    droplevels()
+  
+  # 1. Teste de Kolmogorov-Smirnov (compara as distribuições como um todo)
+  teste_ks <- ks.test(TEMP_C ~ GRUPO, data = dados_dia)
+  
+  # 2. Teste de Mann-Whitney (compara locação, caso assuma mesma forma)
+  teste_mw <- wilcox.test(TEMP_C ~ GRUPO, data = dados_dia, exact = FALSE)
+  
+  # 3. Bootstrap estratificado para a diferença de medianas (Droga - Placebo)
+  dif_med_dia <- function(dados, indices) {
+    d <- dados[indices, ]
+    median(d$TEMP_C[d$GRUPO == "Droga"]) - median(d$TEMP_C[d$GRUPO == "Placebo"])
+  }
+  
+  set.seed(42)
+  boot_dia <- boot::boot(
+    data = dados_dia,
+    statistic = dif_med_dia,
+    R = R_boot,
+    strata = factor(dados_dia$GRUPO)
+  )
+  
+  ci_dia <- boot::boot.ci(boot_dia, conf = 0.95, type = c("perc", "bca"))
+  
+  # Retornar resumo estruturado
+  data.frame(
+    DIA = dia_alvo,
+    mediana_Droga = median(dados_dia$TEMP_C[dados_dia$GRUPO == "Droga"]),
+    mediana_Placebo = median(dados_dia$TEMP_C[dados_dia$GRUPO == "Placebo"]),
+    dif_observada = boot_dia$t0,
+    KS_D = unname(teste_ks$statistic),
+    KS_p = teste_ks$p.value,
+    MW_W = unname(teste_mw$statistic),
+    MW_p = teste_mw$p.value,
+    IC_perc_inf = ci_dia$percent[4],
+    IC_perc_sup = ci_dia$percent[5],
+    IC_bca_inf = ci_dia$bca[4],
+    IC_bca_sup = ci_dia$bca[5]
+  )
+}
+
+# Executar para todos os momentos (incluindo ANTES para conferir consistência)
+resultados_entre_grupos <- bind_rows(
+  lapply(dias_estudo, comparar_grupos_por_dia)
+)
+
+# Ajuste de Holm para os 3 testes pós-operatórios (D1, D3 e D5)
+resultados_entre_grupos <- resultados_entre_grupos %>%
+  mutate(
+    KS_p_holm = ifelse(DIA == "ANTES", NA, p.adjust(KS_p[DIA != "ANTES"], method = "holm")),
+    MW_p_holm = ifelse(DIA == "ANTES", NA, p.adjust(MW_p[DIA != "ANTES"], method = "holm"))
+  )
+
+print(resultados_entre_grupos, digits = 4)
